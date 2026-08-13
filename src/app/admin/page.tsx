@@ -54,7 +54,7 @@ export default function AdminPage() {
       <div className="flex min-h-screen items-center justify-center px-4 bg-gradient-to-br from-primary/5 via-background to-accent/5">
         <div className="w-full max-w-sm space-y-4 rounded-2xl border bg-card p-8 shadow-lg">
           <div className="text-center">
-            <img src="/logo.jpg" alt="Viksit Chetna" className="mx-auto h-14 w-14 rounded-full ring-2 ring-primary/30" />
+            <img src="/logo.png" alt="Viksit Chetna" className="mx-auto h-14 w-14 rounded-full ring-2 ring-primary/30" />
             <h1 className="mt-3 text-2xl font-bold gradient-text">Admin Login</h1>
             <p className="text-xs text-muted-foreground mt-1">Viksit Chetna</p>
           </div>

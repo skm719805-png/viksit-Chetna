@@ -45,7 +45,7 @@ export async function Footer() {
           {/* Brand */}
           <div>
             <div className="flex items-center gap-2">
-              <img src="/logo.jpg" alt="Viksit Chetna" className="h-9 w-9 rounded-full ring-2 ring-primary/30" />
+              <img src="/logo.png" alt="Viksit Chetna" className="h-9 w-9 rounded-full ring-2 ring-primary/30" />
               <div>
                 <span className="text-lg font-bold gradient-text leading-tight block">Viksit Chetna</span>
                 <span className="text-[10px] text-muted-foreground tracking-wide">Intellectual Club</span>

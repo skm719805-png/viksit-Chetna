@@ -21,20 +21,22 @@ export function Navbar() {
   const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-primary/10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 shadow-sm">
+    <header className="sticky top-0 z-50 w-full border-b border-primary/10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 shadow-[0_1px_12px_oklch(0.40_0.23_270/0.06)]">
       <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
         <Link href="/" className="flex items-center gap-2.5 group">
-          <Image
-            src="/logo.jpg"
-            alt="Viksit Chetna"
-            width={42}
-            height={42}
-            className="rounded-full ring-2 ring-primary/20 group-hover:ring-primary/60 transition-all duration-300"
-            priority
-          />
+          <div className="relative flex-shrink-0">
+            <Image
+              src="/logo.png"
+              alt="Viksit Chetna"
+              width={40}
+              height={40}
+              className="rounded-full ring-2 ring-primary/25 group-hover:ring-primary/70 transition-all duration-300 shadow-sm"
+              priority
+            />
+          </div>
           <div className="hidden sm:block">
-            <span className="text-lg font-bold gradient-text leading-tight">Viksit Chetna</span>
-            <p className="text-[10px] text-muted-foreground leading-none tracking-wide">Intellectual Club</p>
+            <span className="text-[17px] font-extrabold gradient-text leading-tight tracking-tight">Viksit Chetna</span>
+            <p className="text-[10px] text-muted-foreground leading-none tracking-widest uppercase">Intellectual Club</p>
           </div>
         </Link>
 
