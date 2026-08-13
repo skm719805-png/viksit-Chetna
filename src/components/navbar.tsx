@@ -21,7 +21,7 @@ export function Navbar() {
   const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-primary/10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 shadow-[0_1px_12px_oklch(0.40_0.23_270/0.06)]">
+    <header className="sticky top-0 z-50 w-full border-b border-primary/12 bg-background/92 backdrop-blur-xl shadow-sm">
       <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
         <Link href="/" className="flex items-center gap-2.5 group">
           <div className="relative flex-shrink-0">

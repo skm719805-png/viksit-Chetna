@@ -39,7 +39,7 @@ export async function Footer() {
   const activeSocials = SOCIAL_KEYS.filter((k) => settings[k]);
 
   return (
-    <footer className="border-t border-primary/10 bg-gradient-to-b from-muted/30 to-muted/60">
+    <footer className="border-t border-primary/12 bg-gradient-to-b from-muted/60 to-muted">
       <div className="mx-auto max-w-7xl px-4 py-12">
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           {/* Brand */}
