@@ -167,9 +167,11 @@ function VolunteerManager({ volunteers, headers, onRefresh }: { volunteers: Volu
 function MemberManager({ members, headers, onRefresh }: { members: Member[]; headers: Record<string, string>; onRefresh: () => void }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<Member>>({});
-  const [leaderModal, setLeaderModal] = useState<string | null>(null);
+  const [leaderModal, setLeaderModal] = useState<Member | null>(null);
   const [leaderRole, setLeaderRole] = useState("");
   const [leaderBio, setLeaderBio] = useState("");
+  const [leaderRank, setLeaderRank] = useState("0");
+  const [useExistingPhoto, setUseExistingPhoto] = useState(true);
   const inp = "w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40";
 
   const update = async (id: string, body: Record<string, unknown>) => {
@@ -184,9 +186,9 @@ function MemberManager({ members, headers, onRefresh }: { members: Member[]; hea
   const startEdit = (m: Member) => { setEditingId(m.id); setEditForm({ name: m.name, email: m.email, phone: m.phone, address: m.address, city: m.city, state: m.state, pincode: m.pincode, age: m.age }); };
   const saveEdit = async () => { await update(editingId!, editForm); setEditingId(null); };
   const promoteLeader = async () => {
-    if (!leaderRole) return;
-    await update(leaderModal!, { promote_to_leader: { role: leaderRole, bio: leaderBio } });
-    setLeaderModal(null); setLeaderRole(""); setLeaderBio("");
+    if (!leaderRole || !leaderModal) return;
+    await update(leaderModal.id, { promote_to_leader: { role: leaderRole, bio: leaderBio, display_order: Number(leaderRank), photo_url: useExistingPhoto ? leaderModal.photo_url : null } });
+    setLeaderModal(null); setLeaderRole(""); setLeaderBio(""); setLeaderRank("0"); setUseExistingPhoto(true);
   };
 
   return (
@@ -219,7 +221,7 @@ function MemberManager({ members, headers, onRefresh }: { members: Member[]; hea
                 </>
               )}
               <Button size="sm" variant="outline" onClick={() => startEdit(m)}>Edit</Button>
-              <Button size="sm" variant="outline" className="text-purple-600 border-purple-300" onClick={() => { setLeaderModal(m.id); setLeaderRole(""); setLeaderBio(""); }}>👑 Make Leader</Button>
+              <Button size="sm" variant="outline" className="text-purple-600 border-purple-300" onClick={() => { setLeaderModal(m); setLeaderRole(""); setLeaderBio(""); setLeaderRank("0"); setUseExistingPhoto(true); }}>👑 Make Leader</Button>
               <Button size="sm" variant="destructive" onClick={() => del(m.id)}>Delete</Button>
             </div>
           </div>
@@ -241,12 +243,27 @@ function MemberManager({ members, headers, onRefresh }: { members: Member[]; hea
             </div>
           )}
 
-          {leaderModal === m.id && (
-            <div className="grid gap-3 sm:grid-cols-2 pt-2 border-t">
-              <div className="sm:col-span-2"><p className="text-sm font-medium text-purple-700">👑 Promote {m.name} to Leadership</p></div>
-              <div><label className="text-xs font-medium text-muted-foreground">Role / Title *</label><input placeholder="e.g. President, Secretary" value={leaderRole} onChange={e => setLeaderRole(e.target.value)} className={`mt-1 ${inp}`} /></div>
-              <div><label className="text-xs font-medium text-muted-foreground">Bio (optional)</label><input placeholder="Short bio" value={leaderBio} onChange={e => setLeaderBio(e.target.value)} className={`mt-1 ${inp}`} /></div>
-              <div className="sm:col-span-2 flex gap-2">
+          {leaderModal?.id === m.id && (
+            <div className="space-y-3 pt-3 border-t">
+              <div className="flex items-center gap-3">
+                {m.photo_url
+                  ? <img src={m.photo_url} alt={m.name} className="h-14 w-14 rounded-full object-cover border-2 border-purple-300" />
+                  : <div className="flex h-14 w-14 items-center justify-center rounded-full bg-purple-100 text-xl font-bold text-purple-600">{m.name[0]}</div>
+                }
+                <p className="text-sm font-semibold text-purple-700">👑 Promote {m.name} to Leadership</p>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div><label className="text-xs font-medium text-muted-foreground">Role / Title *</label><input placeholder="e.g. President, Secretary" value={leaderRole} onChange={e => setLeaderRole(e.target.value)} className={`mt-1 ${inp}`} /></div>
+                <div><label className="text-xs font-medium text-muted-foreground">Ranking (lower = higher priority)</label><input type="number" min="0" placeholder="0" value={leaderRank} onChange={e => setLeaderRank(e.target.value)} className={`mt-1 ${inp}`} /></div>
+                <div className="sm:col-span-2"><label className="text-xs font-medium text-muted-foreground">Bio (optional)</label><input placeholder="Short bio" value={leaderBio} onChange={e => setLeaderBio(e.target.value)} className={`mt-1 ${inp}`} /></div>
+              </div>
+              {m.photo_url && (
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input type="checkbox" checked={useExistingPhoto} onChange={e => setUseExistingPhoto(e.target.checked)} />
+                  Use member&apos;s profile photo as leader photo
+                </label>
+              )}
+              <div className="flex gap-2">
                 <Button size="sm" className="bg-purple-600 hover:bg-purple-700" onClick={promoteLeader} disabled={!leaderRole}>Confirm Promotion</Button>
                 <Button size="sm" variant="outline" onClick={() => setLeaderModal(null)}>Cancel</Button>
               </div>

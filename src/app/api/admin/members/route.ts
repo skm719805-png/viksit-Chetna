@@ -29,7 +29,8 @@ export async function PUT(req: NextRequest) {
       name: member.name,
       role: promote_to_leader.role || "Leader",
       bio: promote_to_leader.bio || null,
-      display_order: 0,
+      photo_url: promote_to_leader.photo_url ?? member.photo_url ?? null,
+      display_order: promote_to_leader.display_order ?? 0,
     });
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ success: true });
