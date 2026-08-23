@@ -20,6 +20,7 @@ CREATE TABLE stories (
   author TEXT NOT NULL,
   content TEXT NOT NULL,
   cover_image_url TEXT,
+  media JSONB DEFAULT '[]'::jsonb,
   published BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()

@@ -3,10 +3,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 
+type MediaItem = { type: "image" | "video" | "youtube" | "instagram"; url: string; caption?: string };
 type Campaign = { id: string; title: string; slug: string; description: string; image_url: string | null; goal_amount: number; is_active: boolean; show_funding: boolean; form_title: string; participation_fields: ParticipationField[] };
 type ParticipationField = { name: string; label: string; type: string; required: boolean; options?: string[] };
 type Participation = { id: string; created_at: string; responses: Record<string, string> };
-type Story = { id: string; title: string; author: string; content: string; cover_image_url: string | null; published: boolean };
+type Story = { id: string; title: string; author: string; content: string; cover_image_url: string | null; published: boolean; media: MediaItem[] };
 type Volunteer = { id: string; name: string; email: string; phone: string; status: string; certificate_issued: boolean; campaigns: { title: string } | null };
 type Member = { id: string; name: string; email: string; phone: string; address: string; city: string; state: string; pincode: string; age: string; status: string; member_id: string | null; photo_url: string | null; created_at: string };
 type Leader = { id: string; name: string; role: string; bio: string | null; photo_url: string | null; social_facebook: string | null; social_instagram: string | null; social_twitter: string | null; display_order: number };
@@ -291,6 +292,8 @@ function CampaignManager({ campaigns, headers, password, onRefresh }: { campaign
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewingParticipations, setViewingParticipations] = useState<string | null>(null);
   const [participations, setParticipations] = useState<Participation[]>([]);
+  const [movingToStory, setMovingToStory] = useState<Campaign | null>(null);
+  const [storyAuthor, setStoryAuthor] = useState("");
 
   const uploadImage = async (file: File) => {
     setUploading(true);
@@ -308,6 +311,20 @@ function CampaignManager({ campaigns, headers, password, onRefresh }: { campaign
   };
 
   const cancelEdit = () => { setEditingId(null); setForm(emptyForm); setFields(DEFAULT_FIELDS); setImageUrl(""); };
+
+  const moveToStory = async () => {
+    if (!movingToStory || !storyAuthor) return;
+    await fetch("/api/admin/stories", { method: "POST", headers, body: JSON.stringify({
+      title: movingToStory.title,
+      author: storyAuthor,
+      content: movingToStory.description,
+      cover_image_url: movingToStory.image_url || null,
+      media: [],
+    }) });
+    setMovingToStory(null); setStoryAuthor("");
+    onRefresh();
+    alert(`✅ "${movingToStory.title}" moved to Stories (as draft). Go to Stories tab to publish and add media.`);
+  };
 
   const handleSave = async () => {
     const body = { title: form.title, description: form.description, goal_amount: Number(form.goal_amount), image_url: imageUrl || null, form_title: form.form_title, show_funding: form.show_funding, participation_fields: fields };
@@ -409,6 +426,7 @@ function CampaignManager({ campaigns, headers, password, onRefresh }: { campaign
                 <Button variant="outline" size="sm" className="rounded-full" onClick={() => startEdit(c)}>Edit</Button>
                 <Button variant="outline" size="sm" className="rounded-full" onClick={() => viewParticipations(c.id)}>Participations</Button>
                 <Button variant="outline" size="sm" className="rounded-full" onClick={async () => { await fetch("/api/admin/campaigns", { method: "PUT", headers, body: JSON.stringify({ id: c.id, is_active: !c.is_active }) }); onRefresh(); }}>{c.is_active ? "Deactivate" : "Activate"}</Button>
+                <Button variant="outline" size="sm" className="rounded-full text-green-700 border-green-300" onClick={() => { setMovingToStory(c); setStoryAuthor(""); }}>📖 Move to Story</Button>
                 <Button variant="destructive" size="sm" className="rounded-full" onClick={async () => { if (!confirm("Delete?")) return; await fetch("/api/admin/campaigns", { method: "DELETE", headers, body: JSON.stringify({ id: c.id }) }); onRefresh(); }}>Delete</Button>
               </div>
             </div>
@@ -416,6 +434,24 @@ function CampaignManager({ campaigns, headers, password, onRefresh }: { campaign
         ))}
         {campaigns.length === 0 && <p className="text-sm text-muted-foreground">No campaigns yet.</p>}
       </div>
+
+      {movingToStory && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-sm rounded-2xl border bg-card p-6 shadow-xl space-y-4">
+            <h3 className="font-semibold text-lg">📖 Move to Story</h3>
+            <p className="text-sm text-muted-foreground">Campaign: <strong>{movingToStory.title}</strong></p>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Author Name *</label>
+              <input placeholder="e.g. Viksit Chetna Team" value={storyAuthor} onChange={e => setStoryAuthor(e.target.value)} className="mt-1 w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
+            </div>
+            <p className="text-xs text-muted-foreground">The campaign title, description and cover image will be copied as a story draft. You can add more media from the Stories tab.</p>
+            <div className="flex gap-2">
+              <Button onClick={moveToStory} disabled={!storyAuthor} className="rounded-full flex-1">Confirm</Button>
+              <Button variant="outline" onClick={() => setMovingToStory(null)} className="rounded-full">Cancel</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -424,6 +460,11 @@ function StoryManager({ stories, headers, password, onRefresh }: { stories: Stor
   const [form, setForm] = useState({ title: "", author: "", content: "" });
   const [uploading, setUploading] = useState(false);
   const [imageUrl, setImageUrl] = useState("");
+  const [media, setMedia] = useState<MediaItem[]>([]);
+  const [newMedia, setNewMedia] = useState<{ type: MediaItem["type"]; url: string; caption: string }>({ type: "youtube", url: "", caption: "" });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [mediaUploading, setMediaUploading] = useState(false);
+  const inp = "w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40";
 
   const uploadImage = async (file: File) => {
     setUploading(true);
@@ -433,29 +474,127 @@ function StoryManager({ stories, headers, password, onRefresh }: { stories: Stor
     setImageUrl(data.url || ""); setUploading(false);
   };
 
-  const handleCreate = async () => {
-    await fetch("/api/admin/stories", { method: "POST", headers, body: JSON.stringify({ title: form.title, author: form.author, content: form.content, cover_image_url: imageUrl || null }) });
-    setForm({ title: "", author: "", content: "" }); setImageUrl(""); onRefresh();
+  const uploadMediaFile = async (file: File, type: "image" | "video") => {
+    setMediaUploading(true);
+    const fd = new FormData(); fd.append("file", file);
+    const res = await fetch("/api/admin/upload", { method: "POST", headers: { "x-admin-password": password }, body: fd });
+    const data = await res.json();
+    if (data.url) setNewMedia(m => ({ ...m, type, url: data.url }));
+    setMediaUploading(false);
   };
+
+  const addMedia = () => {
+    if (!newMedia.url) return;
+    setMedia(m => [...m, { type: newMedia.type, url: newMedia.url, caption: newMedia.caption }]);
+    setNewMedia({ type: "youtube", url: "", caption: "" });
+  };
+
+  const removeMedia = (i: number) => setMedia(m => m.filter((_, idx) => idx !== i));
+
+  const startEdit = (s: Story) => {
+    setEditingId(s.id);
+    setForm({ title: s.title, author: s.author, content: s.content });
+    setImageUrl(s.cover_image_url || "");
+    setMedia(s.media || []);
+  };
+
+  const cancelEdit = () => { setEditingId(null); setForm({ title: "", author: "", content: "" }); setImageUrl(""); setMedia([]); };
+
+  const handleSave = async () => {
+    const body = { title: form.title, author: form.author, content: form.content, cover_image_url: imageUrl || null, media };
+    if (editingId) {
+      await fetch("/api/admin/stories", { method: "PUT", headers, body: JSON.stringify({ id: editingId, ...body }) });
+      cancelEdit();
+    } else {
+      await fetch("/api/admin/stories", { method: "POST", headers, body: JSON.stringify(body) });
+      setForm({ title: "", author: "", content: "" }); setImageUrl(""); setMedia([]);
+    }
+    onRefresh();
+  };
+
+  const MEDIA_TYPES: { value: MediaItem["type"]; label: string; placeholder: string }[] = [
+    { value: "youtube", label: "🎥 YouTube", placeholder: "https://youtube.com/watch?v=..." },
+    { value: "instagram", label: "📸 Instagram", placeholder: "https://instagram.com/p/..." },
+    { value: "image", label: "🖼️ Image URL", placeholder: "https://... or upload below" },
+    { value: "video", label: "🎦 Video URL", placeholder: "https://... or upload below" },
+  ];
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border p-4 space-y-3">
-        <h3 className="font-semibold">Create Article</h3>
-        <input placeholder="Title" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="w-full rounded-lg border px-3 py-2 text-sm" />
-        <input placeholder="Author" value={form.author} onChange={e => setForm({ ...form, author: e.target.value })} className="w-full rounded-lg border px-3 py-2 text-sm" />
-        <textarea placeholder="Content" value={form.content} onChange={e => setForm({ ...form, content: e.target.value })} className="w-full rounded-lg border px-3 py-2 text-sm" rows={5} />
-        <input type="file" accept="image/*" onChange={e => e.target.files?.[0] && uploadImage(e.target.files[0])} className="text-sm" />
-        {uploading && <p className="text-xs text-muted-foreground">Uploading...</p>}
-        {imageUrl && <p className="text-xs text-green-600">Image uploaded ✓</p>}
-        <Button onClick={handleCreate} disabled={!form.title || !form.content} className="rounded-full">Create</Button>
+      <div className="rounded-2xl border p-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold">{editingId ? "Edit Article" : "Create Article"}</h3>
+          {editingId && <button onClick={cancelEdit} className="text-xs text-muted-foreground hover:text-foreground">✕ Cancel</button>}
+        </div>
+        <input placeholder="Title" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className={inp} />
+        <input placeholder="Author" value={form.author} onChange={e => setForm({ ...form, author: e.target.value })} className={inp} />
+        <textarea placeholder="Content" value={form.content} onChange={e => setForm({ ...form, content: e.target.value })} className={inp} rows={5} />
+
+        <div>
+          <label className="text-xs font-medium text-muted-foreground">Cover Image</label>
+          <input type="file" accept="image/*" onChange={e => e.target.files?.[0] && uploadImage(e.target.files[0])} className="mt-1 text-sm" />
+          {uploading && <p className="text-xs text-muted-foreground">Uploading...</p>}
+          {imageUrl && <img src={imageUrl} className="mt-2 h-24 rounded-lg object-cover" />}
+        </div>
+
+        {/* Media Gallery Builder */}
+        <div className="space-y-3 rounded-xl border p-4 bg-muted/30">
+          <p className="text-sm font-semibold">🎨 Media Gallery</p>
+
+          {/* Existing media items */}
+          {media.length > 0 && (
+            <div className="space-y-2">
+              {media.map((item, i) => (
+                <div key={i} className="flex items-center gap-2 rounded-lg border bg-background px-3 py-2 text-sm">
+                  <span className="text-base">{item.type === "youtube" ? "🎥" : item.type === "instagram" ? "📸" : item.type === "video" ? "🎦" : "🖼️"}</span>
+                  <span className="flex-1 truncate text-xs text-muted-foreground">{item.caption || item.url}</span>
+                  <button onClick={() => removeMedia(i)} className="text-red-500 hover:text-red-700 text-xs px-1">✕</button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Add new media item */}
+          <div className="space-y-2 border-t pt-3">
+            <p className="text-xs font-medium text-muted-foreground">+ Add Media Item</p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <select value={newMedia.type} onChange={e => setNewMedia(m => ({ ...m, type: e.target.value as MediaItem["type"], url: "" }))} className={`${inp} bg-background`}>
+                {MEDIA_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+              </select>
+              <input
+                placeholder={MEDIA_TYPES.find(t => t.value === newMedia.type)?.placeholder}
+                value={newMedia.url}
+                onChange={e => setNewMedia(m => ({ ...m, url: e.target.value }))}
+                className={inp}
+              />
+            </div>
+            <input placeholder="Caption (optional)" value={newMedia.caption} onChange={e => setNewMedia(m => ({ ...m, caption: e.target.value }))} className={inp} />
+            {(newMedia.type === "image" || newMedia.type === "video") && (
+              <div>
+                <label className="text-xs text-muted-foreground">Or upload file:</label>
+                <input type="file" accept={newMedia.type === "image" ? "image/*" : "video/*"} onChange={e => e.target.files?.[0] && uploadMediaFile(e.target.files[0], newMedia.type as "image" | "video")} className="mt-1 text-sm" />
+                {mediaUploading && <p className="text-xs text-muted-foreground">Uploading...</p>}
+              </div>
+            )}
+            <Button size="sm" variant="outline" onClick={addMedia} disabled={!newMedia.url} className="rounded-full">+ Add to Gallery</Button>
+          </div>
+        </div>
+
+        <Button onClick={handleSave} disabled={!form.title || !form.content} className="rounded-full">
+          {editingId ? "Update Article" : "Create Article"}
+        </Button>
       </div>
+
       <div className="space-y-3">
         <h3 className="font-semibold">All Articles ({stories.length})</h3>
         {stories.map(s => (
           <div key={s.id} className="flex items-center justify-between rounded-xl border p-3">
-            <div><p className="font-medium">{s.title}</p><p className="text-xs text-muted-foreground">By {s.author} | {s.published ? "Published" : "Draft"}</p></div>
+            <div>
+              <p className="font-medium">{s.title}</p>
+              <p className="text-xs text-muted-foreground">By {s.author} | {s.published ? "Published" : "Draft"} | {(s.media || []).length} media items</p>
+            </div>
             <div className="flex gap-2">
+              <Button variant="outline" size="sm" className="rounded-full" onClick={() => startEdit(s)}>Edit</Button>
               <Button variant="outline" size="sm" className="rounded-full" onClick={async () => { await fetch("/api/admin/stories", { method: "PUT", headers, body: JSON.stringify({ id: s.id, published: !s.published }) }); onRefresh(); }}>{s.published ? "Unpublish" : "Publish"}</Button>
               <Button variant="destructive" size="sm" className="rounded-full" onClick={async () => { if (!confirm("Delete?")) return; await fetch("/api/admin/stories", { method: "DELETE", headers, body: JSON.stringify({ id: s.id }) }); onRefresh(); }}>Delete</Button>
             </div>
