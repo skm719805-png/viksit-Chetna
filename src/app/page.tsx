@@ -8,6 +8,12 @@ import { LeadershipSection } from "@/components/leadership-section";
 export const revalidate = 60;
 export const dynamic = "force-dynamic";
 
+export const metadata = {
+  title: "Viksit Chetna | Intellectual Club India",
+  description: "Viksit Chetna — India's intellectual club for scientists, thinkers and curious minds. Join campaigns, volunteer, and advance society through knowledge.",
+  alternates: { canonical: "https://viksitchetna.in" },
+};
+
 async function getLatestCampaigns() {
   const supabase = getSupabase();
   if (!supabase) return [];
@@ -27,6 +33,41 @@ export default async function Home() {
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          "name": "Viksit Chetna",
+          "alternateName": "Viksit Chetna Intellectual Club",
+          "url": "https://viksitchetna.in",
+          "logo": "https://viksitchetna.in/logo.png",
+          "description": "India's intellectual club for scientists, thinkers and curious minds. Join campaigns, volunteer, and advance society through knowledge.",
+          "email": "support@viksitchetna.in",
+          "foundingLocation": { "@type": "Place", "name": "Prayagraj, Uttar Pradesh, India" },
+          "areaServed": "India",
+          "sameAs": [],
+          "contactPoint": {
+            "@type": "ContactPoint",
+            "email": "support@viksitchetna.in",
+            "contactType": "customer support"
+          }
+        }) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          "name": "Viksit Chetna",
+          "url": "https://viksitchetna.in",
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": "https://viksitchetna.in/campaigns?q={search_term_string}",
+            "query-input": "required name=search_term_string"
+          }
+        }) }}
+      />
       {/* Hero */}
       <section className="hero-section relative flex min-h-[92vh] items-center justify-center overflow-hidden px-4 text-center">
         <div className="pointer-events-none absolute inset-0 -z-10">

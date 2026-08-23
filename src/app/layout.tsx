@@ -32,13 +32,13 @@ export const metadata: Metadata = {
     siteName: "Viksit Chetna",
     title: "Viksit Chetna | Intellectual Club India",
     description: "India's intellectual club — join campaigns, volunteer, and advance society through knowledge.",
-    images: [{ url: "/logo.png", width: 512, height: 512, alt: "Viksit Chetna" }],
+    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "Viksit Chetna" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "Viksit Chetna | Intellectual Club India",
     description: "India's intellectual club — join campaigns, volunteer, and advance society through knowledge.",
-    images: ["/logo.png"],
+    images: ["/opengraph-image"],
   },
   verification: {
     google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
