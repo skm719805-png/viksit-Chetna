@@ -1,12 +1,10 @@
 import { getSupabase } from "@/lib/supabase";
-import { buttonVariants } from "@/components/ui/button";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Campaigns",
-  description: "Browse and support active campaigns by Viksit Chetna Intellectual Club.",
+  description: "Browse and participate in active campaigns by Viksit Chetna Intellectual Club.",
 };
 
 export const revalidate = 60;
@@ -24,40 +22,47 @@ export default async function CampaignsPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12">
-      <h1 className="text-3xl font-bold">Our Campaigns</h1>
-      <p className="mt-2 text-muted-foreground">Organised initiatives where knowledge meets action.</p>
+      <div className="mb-10">
+        <span className="section-badge">Active Initiatives</span>
+        <h1 className="text-3xl font-bold mt-3">Our Campaigns</h1>
+        <p className="mt-2 text-muted-foreground">Click any campaign to view details and participate.</p>
+      </div>
 
       {campaigns.length === 0 ? (
-        <p className="mt-8 text-center text-muted-foreground">No active campaigns at the moment. Check back soon!</p>
+        <div className="text-center py-20 rounded-2xl border border-dashed border-primary/20">
+          <div className="text-5xl mb-3">📡</div>
+          <p className="text-muted-foreground">No active campaigns at the moment. Check back soon!</p>
+        </div>
       ) : (
-        <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {campaigns.map((campaign) => (
-            <div key={campaign.id} className="card-hover overflow-hidden rounded-2xl border bg-card shadow-sm">
-              {campaign.image_url ? (
-                <img src={campaign.image_url} alt={campaign.title} className="h-48 w-full object-cover" />
-              ) : (
-                <div className="h-48 w-full bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center text-5xl">📡</div>
-              )}
-              <div className="p-4">
-                <h2 className="text-lg font-semibold">{campaign.title}</h2>
-                <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{campaign.description}</p>
-                <div className="mt-3">
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>₹{Number(campaign.raised_amount).toLocaleString("en-IN")} raised</span>
-                    <span>Goal: ₹{Number(campaign.goal_amount).toLocaleString("en-IN")}</span>
-                  </div>
-                  <div className="mt-1 h-2 overflow-hidden rounded-full bg-muted">
-                    <div
-                      className="h-full rounded-full bg-primary"
-                      style={{ width: `${Math.min(100, (campaign.raised_amount / campaign.goal_amount) * 100)}%` }}
-                    />
-                  </div>
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {campaigns.map((c) => (
+            <Link key={c.id} href={`/campaigns/${c.slug || c.id}`} className="campaign-card group overflow-hidden rounded-2xl border bg-card shadow-sm flex flex-col">
+              {c.image_url ? (
+                <div className="overflow-hidden h-48 flex-shrink-0">
+                  <img src={c.image_url} alt={c.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
                 </div>
-                <Link href={`/campaigns/${campaign.slug}`} className={cn(buttonVariants({ size: "sm" }), "mt-4 w-full rounded-full")}>
-                  View Campaign
-                </Link>
+              ) : (
+                <div className="h-48 flex-shrink-0 bg-gradient-to-br from-primary/15 to-accent/15 flex items-center justify-center text-5xl">📡</div>
+              )}
+              <div className="p-5 flex flex-col flex-1">
+                <h2 className="font-bold text-lg leading-snug group-hover:text-primary transition-colors">{c.title}</h2>
+                <p className="mt-2 line-clamp-2 text-sm text-muted-foreground flex-1">{c.description}</p>
+                {c.show_funding && c.goal_amount > 0 && (
+                  <div className="mt-3">
+                    <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                      <span>₹{Number(c.raised_amount).toLocaleString("en-IN")} raised</span>
+                      <span>Goal: ₹{Number(c.goal_amount).toLocaleString("en-IN")}</span>
+                    </div>
+                    <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                      <div className="h-full rounded-full bg-gradient-to-r from-primary to-accent" style={{ width: `${Math.min(100, (c.raised_amount / c.goal_amount) * 100)}%` }} />
+                    </div>
+                  </div>
+                )}
+                <span className="mt-4 inline-flex items-center justify-center gap-1 rounded-full bg-primary px-4 py-1.5 text-xs font-semibold text-primary-foreground">
+                  View &amp; Participate →
+                </span>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       )}

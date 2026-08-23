@@ -43,7 +43,7 @@ CREATE TABLE members (
   city TEXT NOT NULL,
   state TEXT NOT NULL,
   pincode TEXT NOT NULL,
-  dob TEXT NOT NULL,
+  age TEXT NOT NULL,
   photo_url TEXT,
   status TEXT NOT NULL DEFAULT 'pending',
   member_id TEXT,

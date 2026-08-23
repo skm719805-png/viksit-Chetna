@@ -8,28 +8,40 @@ const geistSans = Geist({ variable: "--font-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://viksitchetna.org"),
+  metadataBase: new URL("https://viksitchetna.in"),
   title: {
-    default: "Viksit Chetna | Intellectual Club",
+    default: "Viksit Chetna | Intellectual Club India",
     template: "%s | Viksit Chetna",
   },
   description:
-    "Viksit Chetna — A club for mindful intellectuals to share scientific thoughts, organise ideas, and collectively advance society.",
-  keywords: ["Viksit Chetna", "intellectual club", "science", "mindfulness", "society", "India", "knowledge"],
+    "Viksit Chetna — India's intellectual club for scientists, thinkers and curious minds. Join campaigns, volunteer, and advance society through knowledge.",
+  keywords: [
+    "Viksit Chetna", "intellectual club India", "science club", "mindfulness",
+    "youth club India", "knowledge community", "membership club", "volunteer India",
+    "viksitchetna.in", "Prayagraj club", "intellectual society",
+  ],
+  authors: [{ name: "Viksit Chetna", url: "https://viksitchetna.in" }],
+  creator: "Viksit Chetna",
+  publisher: "Viksit Chetna",
+  robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-snippet": -1, "max-image-preview": "large" } },
+  alternates: { canonical: "https://viksitchetna.in" },
   openGraph: {
     type: "website",
     locale: "en_IN",
-    url: "https://viksitchetna.org",
+    url: "https://viksitchetna.in",
     siteName: "Viksit Chetna",
-    title: "Viksit Chetna | Intellectual Club",
-    description: "A club for mindful intellectuals to share scientific thoughts and advance society.",
-    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "Viksit Chetna" }],
+    title: "Viksit Chetna | Intellectual Club India",
+    description: "India's intellectual club — join campaigns, volunteer, and advance society through knowledge.",
+    images: [{ url: "/logo.png", width: 512, height: 512, alt: "Viksit Chetna" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Viksit Chetna | Intellectual Club",
-    description: "A club for mindful intellectuals to share scientific thoughts and advance society.",
-    images: ["/og-image.png"],
+    title: "Viksit Chetna | Intellectual Club India",
+    description: "India's intellectual club — join campaigns, volunteer, and advance society through knowledge.",
+    images: ["/logo.png"],
+  },
+  verification: {
+    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
   },
 };
 

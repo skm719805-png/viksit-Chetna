@@ -1,5 +1,6 @@
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { NextRequest, NextResponse } from "next/server";
+import { emailVolunteerApproved, emailCertificateReady } from "@/lib/email";
 
 function checkAuth(req: NextRequest) {
   return req.headers.get("x-admin-password") === process.env.ADMIN_PASSWORD;
@@ -21,8 +22,14 @@ export async function PUT(req: NextRequest) {
   const updates: Record<string, unknown> = {};
   if (status) updates.status = status;
   if (certificate_issued !== undefined) updates.certificate_issued = certificate_issued;
+  const { data: vol } = await supabase.from("volunteers").select("name, email, campaigns(title)").eq("id", id).single();
   const { error } = await supabase.from("volunteers").update(updates).eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (vol) {
+    const campaignTitle = (vol.campaigns as unknown as { title: string } | null)?.title || "Campaign";
+    if (status === "approved") await emailVolunteerApproved(vol.name, vol.email, campaignTitle);
+    if (certificate_issued) await emailCertificateReady(vol.name, vol.email, campaignTitle, id);
+  }
   return NextResponse.json({ success: true });
 }
 

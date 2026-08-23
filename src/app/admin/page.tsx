@@ -3,10 +3,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 
-type Campaign = { id: string; title: string; description: string; image_url: string | null; goal_amount: number; is_active: boolean };
+type Campaign = { id: string; title: string; slug: string; description: string; image_url: string | null; goal_amount: number; is_active: boolean; show_funding: boolean; form_title: string; participation_fields: ParticipationField[] };
+type ParticipationField = { name: string; label: string; type: string; required: boolean; options?: string[] };
+type Participation = { id: string; created_at: string; responses: Record<string, string> };
 type Story = { id: string; title: string; author: string; content: string; cover_image_url: string | null; published: boolean };
 type Volunteer = { id: string; name: string; email: string; phone: string; status: string; certificate_issued: boolean; campaigns: { title: string } | null };
-type Member = { id: string; name: string; email: string; phone: string; city: string; state: string; status: string; member_id: string | null; photo_url: string | null };
+type Member = { id: string; name: string; email: string; phone: string; address: string; city: string; state: string; pincode: string; age: string; status: string; member_id: string | null; photo_url: string | null; created_at: string };
 type Leader = { id: string; name: string; role: string; bio: string | null; photo_url: string | null; social_facebook: string | null; social_instagram: string | null; social_twitter: string | null; display_order: number };
 type Settings = Record<string, string>;
 
@@ -163,8 +165,15 @@ function VolunteerManager({ volunteers, headers, onRefresh }: { volunteers: Volu
 }
 
 function MemberManager({ members, headers, onRefresh }: { members: Member[]; headers: Record<string, string>; onRefresh: () => void }) {
-  const update = async (id: string, status: string) => {
-    await fetch("/api/admin/members", { method: "PUT", headers, body: JSON.stringify({ id, status }) });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<Partial<Member>>({});
+  const [leaderModal, setLeaderModal] = useState<string | null>(null);
+  const [leaderRole, setLeaderRole] = useState("");
+  const [leaderBio, setLeaderBio] = useState("");
+  const inp = "w-full rounded-lg border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40";
+
+  const update = async (id: string, body: Record<string, unknown>) => {
+    await fetch("/api/admin/members", { method: "PUT", headers, body: JSON.stringify({ id, ...body }) });
     onRefresh();
   };
   const del = async (id: string) => {
@@ -172,38 +181,77 @@ function MemberManager({ members, headers, onRefresh }: { members: Member[]; hea
     await fetch("/api/admin/members", { method: "DELETE", headers, body: JSON.stringify({ id }) });
     onRefresh();
   };
+  const startEdit = (m: Member) => { setEditingId(m.id); setEditForm({ name: m.name, email: m.email, phone: m.phone, address: m.address, city: m.city, state: m.state, pincode: m.pincode, age: m.age }); };
+  const saveEdit = async () => { await update(editingId!, editForm); setEditingId(null); };
+  const promoteLeader = async () => {
+    if (!leaderRole) return;
+    await update(leaderModal!, { promote_to_leader: { role: leaderRole, bio: leaderBio } });
+    setLeaderModal(null); setLeaderRole(""); setLeaderBio("");
+  };
 
   return (
     <div className="space-y-3">
       <h3 className="font-semibold">Members ({members.length})</h3>
       {members.map(m => (
-        <div key={m.id} className="flex flex-col gap-2 rounded-xl border p-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex gap-3">
-            {m.photo_url ? (
-              <img src={m.photo_url} alt={m.name} className="h-12 w-10 rounded border object-cover" />
-            ) : (
-              <div className="flex h-12 w-10 items-center justify-center rounded border bg-muted text-sm font-bold">{m.name[0]}</div>
-            )}
-            <div>
-              <p className="font-medium">{m.name}</p>
-              <p className="text-xs text-muted-foreground">{m.email} | {m.city}, {m.state}</p>
-              <p className="text-xs">Status: <span className={m.status === "approved" ? "text-green-600 font-medium" : m.status === "rejected" ? "text-red-600" : "text-yellow-600"}>{m.status}</span>
-                {m.member_id && <span className="ml-2 font-mono text-primary">{m.member_id}</span>}
-              </p>
+        <div key={m.id} className={`rounded-xl border p-3 space-y-3 ${editingId === m.id ? "border-primary bg-primary/5" : ""}`}>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex gap-3">
+              {m.photo_url ? (
+                <img src={m.photo_url} alt={m.name} className="h-12 w-10 rounded border object-cover flex-shrink-0" />
+              ) : (
+                <div className="flex h-12 w-10 items-center justify-center rounded border bg-muted text-sm font-bold flex-shrink-0">{m.name[0]}</div>
+              )}
+              <div className="space-y-0.5">
+                <p className="font-medium">{m.name}</p>
+                <p className="text-xs text-muted-foreground">📧 {m.email} | 📞 {m.phone}</p>
+                <p className="text-xs text-muted-foreground">📍 {m.address}, {m.city}, {m.state} - {m.pincode}</p>
+                <p className="text-xs text-muted-foreground">Age: {m.age} | Joined: {new Date(m.created_at).toLocaleDateString()}</p>
+                <p className="text-xs">Status: <span className={m.status === "approved" ? "text-green-600 font-medium" : m.status === "rejected" ? "text-red-600" : "text-yellow-600"}>{m.status}</span>
+                  {m.member_id && <span className="ml-2 font-mono text-primary">🪪 {m.member_id}</span>}
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {m.status === "pending" && (
+                <>
+                  <Button size="sm" onClick={() => update(m.id, { status: "approved" })}>Approve</Button>
+                  <Button size="sm" variant="destructive" onClick={() => update(m.id, { status: "rejected" })}>Reject</Button>
+                </>
+              )}
+              <Button size="sm" variant="outline" onClick={() => startEdit(m)}>Edit</Button>
+              <Button size="sm" variant="outline" className="text-purple-600 border-purple-300" onClick={() => { setLeaderModal(m.id); setLeaderRole(""); setLeaderBio(""); }}>👑 Make Leader</Button>
+              <Button size="sm" variant="destructive" onClick={() => del(m.id)}>Delete</Button>
             </div>
           </div>
-          <div className="flex flex-wrap gap-1">
-            {m.status === "pending" && (
-              <>
-                <Button size="sm" onClick={() => update(m.id, "approved")}>Approve</Button>
-                <Button size="sm" variant="destructive" onClick={() => update(m.id, "rejected")}>Reject</Button>
-              </>
-            )}
-            {m.status === "approved" && m.member_id && (
-              <span className="text-xs text-green-600 font-medium px-2 py-1">🪪 {m.member_id}</span>
-            )}
-            <Button size="sm" variant="destructive" onClick={() => del(m.id)}>Delete</Button>
-          </div>
+
+          {editingId === m.id && (
+            <div className="grid gap-3 sm:grid-cols-2 pt-2 border-t">
+              <div><label className="text-xs font-medium text-muted-foreground">Name</label><input value={editForm.name || ""} onChange={e => setEditForm({ ...editForm, name: e.target.value })} className={`mt-1 ${inp}`} /></div>
+              <div><label className="text-xs font-medium text-muted-foreground">Email</label><input value={editForm.email || ""} onChange={e => setEditForm({ ...editForm, email: e.target.value })} className={`mt-1 ${inp}`} /></div>
+              <div><label className="text-xs font-medium text-muted-foreground">Phone</label><input value={editForm.phone || ""} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} className={`mt-1 ${inp}`} /></div>
+              <div><label className="text-xs font-medium text-muted-foreground">Age</label><input type="number" value={editForm.age || ""} onChange={e => setEditForm({ ...editForm, age: e.target.value })} className={`mt-1 ${inp}`} /></div>
+              <div className="sm:col-span-2"><label className="text-xs font-medium text-muted-foreground">Address</label><input value={editForm.address || ""} onChange={e => setEditForm({ ...editForm, address: e.target.value })} className={`mt-1 ${inp}`} /></div>
+              <div><label className="text-xs font-medium text-muted-foreground">City</label><input value={editForm.city || ""} onChange={e => setEditForm({ ...editForm, city: e.target.value })} className={`mt-1 ${inp}`} /></div>
+              <div><label className="text-xs font-medium text-muted-foreground">State</label><input value={editForm.state || ""} onChange={e => setEditForm({ ...editForm, state: e.target.value })} className={`mt-1 ${inp}`} /></div>
+              <div><label className="text-xs font-medium text-muted-foreground">Pincode</label><input value={editForm.pincode || ""} onChange={e => setEditForm({ ...editForm, pincode: e.target.value })} className={`mt-1 ${inp}`} /></div>
+              <div className="sm:col-span-2 flex gap-2">
+                <Button size="sm" onClick={saveEdit}>Save Changes</Button>
+                <Button size="sm" variant="outline" onClick={() => setEditingId(null)}>Cancel</Button>
+              </div>
+            </div>
+          )}
+
+          {leaderModal === m.id && (
+            <div className="grid gap-3 sm:grid-cols-2 pt-2 border-t">
+              <div className="sm:col-span-2"><p className="text-sm font-medium text-purple-700">👑 Promote {m.name} to Leadership</p></div>
+              <div><label className="text-xs font-medium text-muted-foreground">Role / Title *</label><input placeholder="e.g. President, Secretary" value={leaderRole} onChange={e => setLeaderRole(e.target.value)} className={`mt-1 ${inp}`} /></div>
+              <div><label className="text-xs font-medium text-muted-foreground">Bio (optional)</label><input placeholder="Short bio" value={leaderBio} onChange={e => setLeaderBio(e.target.value)} className={`mt-1 ${inp}`} /></div>
+              <div className="sm:col-span-2 flex gap-2">
+                <Button size="sm" className="bg-purple-600 hover:bg-purple-700" onClick={promoteLeader} disabled={!leaderRole}>Confirm Promotion</Button>
+                <Button size="sm" variant="outline" onClick={() => setLeaderModal(null)}>Cancel</Button>
+              </div>
+            </div>
+          )}
         </div>
       ))}
       {members.length === 0 && <p className="text-sm text-muted-foreground">No membership applications yet.</p>}
@@ -211,10 +259,21 @@ function MemberManager({ members, headers, onRefresh }: { members: Member[]; hea
   );
 }
 
+const DEFAULT_FIELDS: ParticipationField[] = [
+  { name: "name", label: "Full Name", type: "text", required: true },
+  { name: "email", label: "Email", type: "email", required: true },
+  { name: "phone", label: "Phone", type: "tel", required: false },
+];
+
 function CampaignManager({ campaigns, headers, password, onRefresh }: { campaigns: Campaign[]; headers: Record<string, string>; password: string; onRefresh: () => void }) {
-  const [form, setForm] = useState({ title: "", description: "", goal_amount: "" });
+  const emptyForm = { title: "", description: "", goal_amount: "", form_title: "Participate in this Campaign", show_funding: true };
+  const [form, setForm] = useState(emptyForm);
+  const [fields, setFields] = useState<ParticipationField[]>(DEFAULT_FIELDS);
   const [uploading, setUploading] = useState(false);
   const [imageUrl, setImageUrl] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [viewingParticipations, setViewingParticipations] = useState<string | null>(null);
+  const [participations, setParticipations] = useState<Participation[]>([]);
 
   const uploadImage = async (file: File) => {
     setUploading(true);
@@ -224,34 +283,121 @@ function CampaignManager({ campaigns, headers, password, onRefresh }: { campaign
     setImageUrl(data.url || ""); setUploading(false);
   };
 
-  const handleCreate = async () => {
-    await fetch("/api/admin/campaigns", { method: "POST", headers, body: JSON.stringify({ title: form.title, description: form.description, goal_amount: Number(form.goal_amount), image_url: imageUrl || null }) });
-    setForm({ title: "", description: "", goal_amount: "" }); setImageUrl(""); onRefresh();
+  const startEdit = (c: Campaign) => {
+    setEditingId(c.id);
+    setForm({ title: c.title, description: c.description, goal_amount: String(c.goal_amount), form_title: c.form_title || "Participate in this Campaign", show_funding: c.show_funding ?? true });
+    setFields(c.participation_fields?.length ? c.participation_fields : DEFAULT_FIELDS);
+    setImageUrl(c.image_url || "");
   };
+
+  const cancelEdit = () => { setEditingId(null); setForm(emptyForm); setFields(DEFAULT_FIELDS); setImageUrl(""); };
+
+  const handleSave = async () => {
+    const body = { title: form.title, description: form.description, goal_amount: Number(form.goal_amount), image_url: imageUrl || null, form_title: form.form_title, show_funding: form.show_funding, participation_fields: fields };
+    if (editingId) {
+      await fetch("/api/admin/campaigns", { method: "PUT", headers, body: JSON.stringify({ id: editingId, ...body }) });
+      cancelEdit();
+    } else {
+      await fetch("/api/admin/campaigns", { method: "POST", headers, body: JSON.stringify(body) });
+      setForm(emptyForm); setFields(DEFAULT_FIELDS); setImageUrl("");
+    }
+    onRefresh();
+  };
+
+  const addField = () => setFields(f => [...f, { name: `field_${Date.now()}`, label: "", type: "text", required: false }]);
+  const removeField = (i: number) => setFields(f => f.filter((_, idx) => idx !== i));
+  const updateField = (i: number, patch: Partial<ParticipationField>) => setFields(f => f.map((x, idx) => idx === i ? { ...x, ...patch } : x));
+
+  const viewParticipations = async (campaignId: string) => {
+    const res = await fetch(`/api/campaign-participate?campaign_id=${campaignId}`, { headers: { "x-admin-password": password } });
+    if (res.ok) { setParticipations(await res.json()); setViewingParticipations(campaignId); }
+  };
+
+  if (viewingParticipations) {
+    const campaign = campaigns.find(c => c.id === viewingParticipations);
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-3">
+          <Button variant="outline" size="sm" className="rounded-full" onClick={() => setViewingParticipations(null)}>← Back</Button>
+          <h3 className="font-semibold">Participations: {campaign?.title} ({participations.length})</h3>
+        </div>
+        {participations.length === 0 && <p className="text-sm text-muted-foreground">No participations yet.</p>}
+        {participations.map(p => (
+          <div key={p.id} className="rounded-xl border p-3 space-y-1">
+            <p className="text-xs text-muted-foreground">{new Date(p.created_at).toLocaleString()}</p>
+            {Object.entries(p.responses).map(([k, v]) => (
+              <p key={k} className="text-sm"><span className="font-medium capitalize">{k.replace(/_/g, " ")}:</span> {v}</p>
+            ))}
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border p-4 space-y-3">
-        <h3 className="font-semibold">Create Campaign</h3>
+      <div className="rounded-2xl border p-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold">{editingId ? "Edit Campaign" : "Create Campaign"}</h3>
+          {editingId && <button onClick={cancelEdit} className="text-xs text-muted-foreground hover:text-foreground">✕ Cancel</button>}
+        </div>
         <input placeholder="Title" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} className="w-full rounded-lg border px-3 py-2 text-sm" />
         <textarea placeholder="Description" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className="w-full rounded-lg border px-3 py-2 text-sm" rows={3} />
-        <input placeholder="Goal Amount (₹)" type="number" value={form.goal_amount} onChange={e => setForm({ ...form, goal_amount: e.target.value })} className="w-full rounded-lg border px-3 py-2 text-sm" />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <input placeholder="Goal Amount (₹)" type="number" value={form.goal_amount} onChange={e => setForm({ ...form, goal_amount: e.target.value })} className="w-full rounded-lg border px-3 py-2 text-sm" />
+          <input placeholder="Form Title" value={form.form_title} onChange={e => setForm({ ...form, form_title: e.target.value })} className="w-full rounded-lg border px-3 py-2 text-sm" />
+        </div>
+        <label className="flex items-center gap-2 text-sm cursor-pointer">
+          <input type="checkbox" checked={form.show_funding} onChange={e => setForm({ ...form, show_funding: e.target.checked })} className="rounded" />
+          Show funding/donation section
+        </label>
         <input type="file" accept="image/*" onChange={e => e.target.files?.[0] && uploadImage(e.target.files[0])} className="text-sm" />
         {uploading && <p className="text-xs text-muted-foreground">Uploading...</p>}
-        {imageUrl && <p className="text-xs text-green-600">Image uploaded ✓</p>}
-        <Button onClick={handleCreate} disabled={!form.title || !form.description} className="rounded-full">Create</Button>
+        {imageUrl && <p className="text-xs text-green-600">Image ready ✓</p>}
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium">Participation Form Fields</p>
+            <Button size="sm" variant="outline" className="rounded-full text-xs" onClick={addField}>+ Add Field</Button>
+          </div>
+          {fields.map((f, i) => (
+            <div key={i} className="grid grid-cols-[1fr_1fr_auto_auto] gap-2 items-center">
+              <input placeholder="Label" value={f.label} onChange={e => updateField(i, { label: e.target.value, name: e.target.value.toLowerCase().replace(/\s+/g, "_") })} className="rounded-lg border px-2 py-1.5 text-sm" />
+              <select value={f.type} onChange={e => updateField(i, { type: e.target.value })} className="rounded-lg border px-2 py-1.5 text-sm bg-background">
+                {["text", "email", "tel", "textarea", "select"].map(t => <option key={t}>{t}</option>)}
+              </select>
+              <label className="flex items-center gap-1 text-xs whitespace-nowrap">
+                <input type="checkbox" checked={f.required} onChange={e => updateField(i, { required: e.target.checked })} /> Req
+              </label>
+              <button onClick={() => removeField(i)} className="text-red-500 hover:text-red-700 text-sm px-1">✕</button>
+            </div>
+          ))}
+        </div>
+
+        <Button onClick={handleSave} disabled={!form.title || !form.description} className="rounded-full">
+          {editingId ? "Update Campaign" : "Create Campaign"}
+        </Button>
       </div>
+
       <div className="space-y-3">
         <h3 className="font-semibold">All Campaigns ({campaigns.length})</h3>
         {campaigns.map(c => (
-          <div key={c.id} className="flex items-center justify-between rounded-xl border p-3">
-            <div><p className="font-medium">{c.title}</p><p className="text-xs text-muted-foreground">Goal: ₹{c.goal_amount} | {c.is_active ? "Active" : "Inactive"}</p></div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" className="rounded-full" onClick={async () => { await fetch("/api/admin/campaigns", { method: "PUT", headers, body: JSON.stringify({ id: c.id, is_active: !c.is_active }) }); onRefresh(); }}>{c.is_active ? "Deactivate" : "Activate"}</Button>
-              <Button variant="destructive" size="sm" className="rounded-full" onClick={async () => { if (!confirm("Delete?")) return; await fetch("/api/admin/campaigns", { method: "DELETE", headers, body: JSON.stringify({ id: c.id }) }); onRefresh(); }}>Delete</Button>
+          <div key={c.id} className="rounded-xl border p-3 space-y-2">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <p className="font-medium">{c.title}</p>
+                <p className="text-xs text-muted-foreground">Goal: ₹{c.goal_amount} | {c.is_active ? "🟢 Active" : "⚫ Inactive"} | Funding: {c.show_funding ? "On" : "Off"}</p>
+              </div>
+              <div className="flex flex-wrap gap-1 justify-end">
+                <Button variant="outline" size="sm" className="rounded-full" onClick={() => startEdit(c)}>Edit</Button>
+                <Button variant="outline" size="sm" className="rounded-full" onClick={() => viewParticipations(c.id)}>Participations</Button>
+                <Button variant="outline" size="sm" className="rounded-full" onClick={async () => { await fetch("/api/admin/campaigns", { method: "PUT", headers, body: JSON.stringify({ id: c.id, is_active: !c.is_active }) }); onRefresh(); }}>{c.is_active ? "Deactivate" : "Activate"}</Button>
+                <Button variant="destructive" size="sm" className="rounded-full" onClick={async () => { if (!confirm("Delete?")) return; await fetch("/api/admin/campaigns", { method: "DELETE", headers, body: JSON.stringify({ id: c.id }) }); onRefresh(); }}>Delete</Button>
+              </div>
             </div>
           </div>
         ))}
+        {campaigns.length === 0 && <p className="text-sm text-muted-foreground">No campaigns yet.</p>}
       </div>
     </div>
   );

@@ -20,7 +20,12 @@ export async function POST(req: NextRequest) {
   const supabase = getSupabaseAdmin();
   if (!supabase) return NextResponse.json({ error: "DB not configured" }, { status: 503 });
   const body = await req.json();
-  const slug = body.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  const base = body.title
+    .toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+  const slug = base || `campaign-${Date.now()}`;
   const { data, error } = await supabase.from("campaigns").insert({ ...body, slug }).select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data);

@@ -1,5 +1,6 @@
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { NextRequest, NextResponse } from "next/server";
+import { emailVolunteerRegistered } from "@/lib/email";
 
 export async function POST(req: NextRequest) {
   const { name, email, phone, campaign_id, message } = await req.json();
@@ -8,6 +9,8 @@ export async function POST(req: NextRequest) {
   if (!supabase) return NextResponse.json({ error: "DB not configured" }, { status: 503 });
   const { error } = await supabase.from("volunteers").insert({ name, email, phone, campaign_id, message });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  const { data: campaign } = await supabase.from("campaigns").select("title").eq("id", campaign_id).single();
+  await emailVolunteerRegistered(name, email, campaign?.title || "Campaign");
   return NextResponse.json({ success: true });
 }
 

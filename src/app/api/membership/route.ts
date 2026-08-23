@@ -1,5 +1,6 @@
 import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { NextRequest, NextResponse } from "next/server";
+import { emailMemberRegistered } from "@/lib/email";
 
 export async function POST(req: NextRequest) {
   const formData = await req.formData();
@@ -10,9 +11,9 @@ export async function POST(req: NextRequest) {
   const city = formData.get("city") as string;
   const state = formData.get("state") as string;
   const pincode = formData.get("pincode") as string;
-  const dob = formData.get("dob") as string;
+  const age = formData.get("age") as string;
   const photo = formData.get("photo") as File | null;
-  if (!name || !email || !phone || !address || !city || !state || !pincode || !dob) {
+  if (!name || !email || !phone || !address || !city || !state || !pincode || !age) {
     return NextResponse.json({ error: "All fields are required" }, { status: 400 });
   }
   const supabase = getSupabaseAdmin();
@@ -29,8 +30,9 @@ export async function POST(req: NextRequest) {
       photo_url = urlData.publicUrl;
     }
   }
-  const { error } = await supabase.from("members").insert({ name, email, phone, address, city, state, pincode, dob, photo_url });
+  const { error } = await supabase.from("members").insert({ name, email, phone, address, city, state, pincode, dob: age, photo_url });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  await emailMemberRegistered(name, email);
   return NextResponse.json({ success: true });
 }
 

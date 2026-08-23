@@ -11,7 +11,7 @@ function Spinner() {
 function MembershipContent() {
   const params = useSearchParams();
   const tab = params.get("tab") || "register";
-  const [form, setForm] = useState({ name: "", email: "", phone: "", address: "", city: "", state: "", pincode: "", dob: "" });
+  const [form, setForm] = useState({ name: "", email: "", phone: "", address: "", city: "", state: "", pincode: "", age: "" });
   const [photo, setPhoto] = useState<File | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
@@ -30,7 +30,7 @@ function MembershipContent() {
     const res = await fetch("/api/membership", { method: "POST", body: fd });
     if (res.ok) {
       setStatus("success");
-      setForm({ name: "", email: "", phone: "", address: "", city: "", state: "", pincode: "", dob: "" });
+      setForm({ name: "", email: "", phone: "", address: "", city: "", state: "", pincode: "", age: "" });
       setPhoto(null);
     } else {
       const data = await res.json();
@@ -95,8 +95,8 @@ function MembershipContent() {
                   <input placeholder="+91 XXXXX XXXXX" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className={`mt-1 ${inp}`} required />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground">Date of Birth *</label>
-                  <input type="date" value={form.dob} onChange={e => setForm({ ...form, dob: e.target.value })} className={`mt-1 ${inp}`} required />
+                  <label className="text-xs font-medium text-muted-foreground">Age *</label>
+                  <input type="number" min="1" max="120" placeholder="Your Age" value={form.age} onChange={e => setForm({ ...form, age: e.target.value })} className={`mt-1 ${inp}`} required />
                 </div>
               </div>
               <div>
