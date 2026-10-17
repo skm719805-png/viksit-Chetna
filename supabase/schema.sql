@@ -112,3 +112,92 @@ INSERT INTO storage.buckets (id, name, public) VALUES ('images', 'images', true)
 CREATE POLICY "Public read images" ON storage.objects FOR SELECT USING (bucket_id = 'images');
 CREATE POLICY "Service role upload images" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'images' AND auth.role() = 'service_role');
 CREATE POLICY "Service role delete images" ON storage.objects FOR DELETE USING (bucket_id = 'images' AND auth.role() = 'service_role');
+
+-- ── Examination Module Tables ──
+
+CREATE TABLE exams (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  title TEXT NOT NULL,
+  slug TEXT UNIQUE NOT NULL,
+  description TEXT NOT NULL,
+  category TEXT DEFAULT 'General',
+  duration_minutes INTEGER NOT NULL DEFAULT 30,
+  total_marks INTEGER NOT NULL DEFAULT 100,
+  passing_percentage INTEGER NOT NULL DEFAULT 40,
+  instructions TEXT DEFAULT '1. All questions are multiple choice.\n2. Each question has equal marks.\n3. Do not refresh or close the browser during the exam.\n4. Click Submit once you complete all questions.',
+  is_active BOOLEAN DEFAULT true,
+  exam_date TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE exam_questions (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  exam_id UUID REFERENCES exams(id) ON DELETE CASCADE,
+  question_text TEXT NOT NULL,
+  options JSONB NOT NULL DEFAULT '[]'::jsonb,
+  correct_option INTEGER NOT NULL DEFAULT 0,
+  marks INTEGER NOT NULL DEFAULT 1,
+  negative_marks NUMERIC(4,2) DEFAULT 0,
+  explanation TEXT,
+  order_index INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE exam_registrations (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  exam_id UUID REFERENCES exams(id) ON DELETE CASCADE,
+  roll_number TEXT UNIQUE NOT NULL,
+  admit_card_key TEXT UNIQUE NOT NULL,
+  student_name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  institution TEXT NOT NULL,
+  grade_or_course TEXT,
+  status TEXT DEFAULT 'registered',
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE exam_attempts (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  exam_id UUID REFERENCES exams(id) ON DELETE CASCADE,
+  registration_id UUID REFERENCES exam_registrations(id) ON DELETE CASCADE,
+  answers JSONB DEFAULT '{}'::jsonb,
+  score NUMERIC(6,2) DEFAULT 0,
+  total_questions INTEGER DEFAULT 0,
+  correct_answers INTEGER DEFAULT 0,
+  wrong_answers INTEGER DEFAULT 0,
+  unanswered INTEGER DEFAULT 0,
+  percentage NUMERIC(5,2) DEFAULT 0,
+  passed BOOLEAN DEFAULT false,
+  started_at TIMESTAMPTZ DEFAULT now(),
+  submitted_at TIMESTAMPTZ DEFAULT now(),
+  certificate_id TEXT UNIQUE,
+  status TEXT DEFAULT 'submitted'
+);
+
+-- RLS for Exam Tables
+ALTER TABLE exams ENABLE ROW LEVEL SECURITY;
+ALTER TABLE exam_questions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE exam_registrations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE exam_attempts ENABLE ROW LEVEL SECURITY;
+
+-- Public read policies
+CREATE POLICY "Public read active exams" ON exams FOR SELECT USING (is_active = true);
+CREATE POLICY "Public read exam registrations by roll" ON exam_registrations FOR SELECT USING (true);
+CREATE POLICY "Public read exam attempts" ON exam_attempts FOR SELECT USING (true);
+
+-- Service role full access
+CREATE POLICY "Service role exams" ON exams FOR ALL USING (auth.role() = 'service_role');
+CREATE POLICY "Service role exam_questions" ON exam_questions FOR ALL USING (auth.role() = 'service_role');
+CREATE POLICY "Service role exam_registrations" ON exam_registrations FOR ALL USING (auth.role() = 'service_role');
+CREATE POLICY "Service role exam_attempts" ON exam_attempts FOR ALL USING (auth.role() = 'service_role');
+
+-- Indexes
+CREATE INDEX IF NOT EXISTS idx_exams_slug ON exams(slug);
+CREATE INDEX IF NOT EXISTS idx_exam_questions_exam ON exam_questions(exam_id);
+CREATE INDEX IF NOT EXISTS idx_exam_registrations_roll ON exam_registrations(roll_number);
+CREATE INDEX IF NOT EXISTS idx_exam_registrations_exam ON exam_registrations(exam_id);
+CREATE INDEX IF NOT EXISTS idx_exam_attempts_reg ON exam_attempts(registration_id);
+CREATE INDEX IF NOT EXISTS idx_exam_attempts_cert ON exam_attempts(certificate_id);
+

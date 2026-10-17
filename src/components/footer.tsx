@@ -79,6 +79,7 @@ export async function Footer() {
               {[
                 { href: "/about", label: "About Us" },
                 { href: "/campaigns", label: "Campaigns" },
+                { href: "/exam", label: "Online Exams & Olympiads" },
                 { href: "/membership", label: "Membership" },
                 { href: "/volunteer", label: "Volunteer" },
                 { href: "/stories", label: "Articles" },

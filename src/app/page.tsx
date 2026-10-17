@@ -95,6 +95,9 @@ export default async function Home() {
             <Link href="/membership" className={cn(buttonVariants({ size: "lg" }), "btn-shimmer rounded-full px-10 shadow-lg shadow-primary/25")}>
               🧠 Join the Club
             </Link>
+            <Link href="/exam" className={cn(buttonVariants({ size: "lg" }), "rounded-full px-10 bg-amber-600 text-white hover:bg-amber-700 shadow-lg shadow-amber-600/20")}>
+              🎓 Online Exam Portal →
+            </Link>
             <Link href="/campaigns" className={cn(buttonVariants({ variant: "outline", size: "lg" }), "rounded-full px-10 border-primary/30 hover:border-primary hover:bg-primary/5")}>
               Our Campaigns →
             </Link>
@@ -111,6 +114,46 @@ export default async function Home() {
             <div className="flex flex-col items-center gap-1 text-muted-foreground/40">
               <span className="text-xs tracking-widest uppercase">Scroll</span>
               <div className="h-10 w-px bg-gradient-to-b from-primary/40 to-transparent animate-pulse" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Exam & Olympiad Highlight Banner */}
+      <section className="px-4 py-12 bg-primary/[0.04] border-y border-primary/10">
+        <div className="mx-auto max-w-6xl">
+          <div className="rounded-3xl border border-primary/20 bg-gradient-to-br from-card via-card to-primary/5 p-8 sm:p-12 shadow-sm flex flex-col md:flex-row items-center justify-between gap-8">
+            <div className="max-w-2xl">
+              <div className="inline-flex items-center gap-2 rounded-full bg-amber-500/10 px-3.5 py-1 text-xs font-bold text-amber-700 dark:text-amber-400 mb-4">
+                <span className="h-2 w-2 rounded-full bg-amber-500 animate-ping" />
+                National Examination Portal 2026
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
+                Viksit Chetna Science & Rationality Olympiad
+              </h2>
+              <p className="mt-3 text-sm sm:text-base text-muted-foreground leading-relaxed">
+                Compete with thinkers across the country. Take timed online assessments, download official admit cards, and earn digitally verifiable Merit Certificates.
+              </p>
+              <div className="mt-6 flex flex-wrap gap-4 text-xs font-medium text-foreground">
+                <span className="inline-flex items-center gap-1.5">✓ Instant Online Test Engine</span>
+                <span className="inline-flex items-center gap-1.5">✓ Printable Hall Tickets</span>
+                <span className="inline-flex items-center gap-1.5">✓ Merit Certificates</span>
+                <span className="inline-flex items-center gap-1.5">✓ 100% Free Registration</span>
+              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row md:flex-col gap-3 w-full sm:w-auto">
+              <Link
+                href="/exam"
+                className="btn-shimmer inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-8 py-3.5 text-sm font-bold text-primary-foreground shadow-md hover:bg-primary/90 text-center"
+              >
+                🚀 Explore Exam Portal
+              </Link>
+              <Link
+                href="/exam/admit-card"
+                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-border bg-background px-6 py-3 text-xs font-semibold text-foreground hover:bg-muted text-center"
+              >
+                🎫 Download Admit Card
+              </Link>
             </div>
           </div>
         </div>
